@@ -1,0 +1,56 @@
+
+                    Installation, Building and Demonstration
+                          of the DbLoader Application
+
+
+1.  Application Installation
+
+    Uncompress and unbundle the distribution using the following command:
+
+        zcat db-loader-vX.XXX-prod-src.tar.gz | tar -xf -
+
+    The result of this command is a subdirectory db-loader-vX.XXX-prod-src in
+    the current directory. It contains the subdirectories of various source
+    modules and helper directories:
+
+        bin - subdirectory in which the application executable
+          will be placed after the build process.
+        db-loader-vX.X - subdirectory of the main application module,
+          that contains test examples in its "test" subdirectory.
+
+
+2.  Application Building
+
+    Position in the db-loader-vX.XXX-prod-src directory and run "make" command:
+
+        cd db-loader-vX.XXX-prod-src
+        make
+
+    The application executable (db-loader) will be placed in the "bin"
+    subdirectory.
+
+
+    NOTE: The users who are working on Sun platform are strongly advised to
+    check the compiler flags in etc/make.platform.sunos5 file. Depending on
+    the compiler version, users may be required to make modifications to those
+    compiler flags.
+
+
+3.  Demonstration
+
+a.  To do the demonstration of this application, position in the
+    db-loader-vX.XXX-prod-src/db-loader-vX.X/test directory and run the
+    "Test-loader.csh" script:
+
+        cd db-loader-vX.XXX-prod-src/db-loader-vX.X/test
+        ./Test-loader.csh
+
+    This script invokes the application several times to demonstrate its
+    features. The generated files are in the current directory.
+
+b.  The application command line options can be displayed by typing the name
+    of the executable without arguments:
+
+        cd db-loader-vX.XXX-prod-src/bin
+        db-loader
+
