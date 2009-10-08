@@ -14,9 +14,9 @@
 #include <unistd.h>
 
 #include "GenString.h"
-#include "CifParserBase.h"
 #include "DictObjFile.h"
 #include "DictObjCont.h"
+#include "CifFileUtil.h"
 #include "CifSchemaMap.h"
 
 using std::string;
@@ -1886,25 +1886,17 @@ void DbLoader::AsciiFileToDb(const string& inpFile, const eConvOpt convOpt)
 
     if (convOpt != eSCRIPTS_ONLY)
     {
-        fobjR = new CifFile(_verbose, Char::eCASE_SENSITIVE,
-          SchemaMap::_MAX_LINE_LENGTH);  
-
         if (_verbose)
             _log << "Reading input file  " << inpFile << endl;
 
-        CifParser* cifParserP = NULL;
-        cifParserP = new CifParser(fobjR, fobjR->GetVerbose());
+        fobjR = ParseCif(inpFile, _verbose, Char::eCASE_SENSITIVE,
+          SchemaMap::_MAX_LINE_LENGTH);  
 
-        string diags;
-        cifParserP->Parse(inpFile, diags);
-
-        delete(cifParserP);
-
-        if (!diags.empty())
+        if (!(fobjR->_parsingDiags).empty())
         {
-            if (_verbose) _log << " Diagnostics [" << diags.size() << "] " <<
-              diags.c_str() << endl;
-            diags.clear();
+            if (_verbose)
+                _log << " Diagnostics [" << (fobjR->_parsingDiags).size() <<
+                  "] " << fobjR->_parsingDiags << endl;
         }
     }
 
