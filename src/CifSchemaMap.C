@@ -1892,11 +1892,13 @@ void DbLoader::AsciiFileToDb(const string& inpFile, const eConvOpt convOpt)
         fobjR = ParseCif(inpFile, _verbose, Char::eCASE_SENSITIVE,
           SchemaMap::_MAX_LINE_LENGTH);  
 
-        if (!(fobjR->_parsingDiags).empty())
+        const string& parsingDiags = fobjR->GetParsingDiags();
+
+        if (!parsingDiags.empty())
         {
             if (_verbose)
-                _log << " Diagnostics [" << (fobjR->_parsingDiags).size() <<
-                  "] " << fobjR->_parsingDiags << endl;
+                _log << " Diagnostics [" << parsingDiags.size() << "] " <<
+                  parsingDiags << endl;
         }
     }
 
