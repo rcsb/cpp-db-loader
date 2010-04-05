@@ -2157,6 +2157,12 @@ void DbLoader::_LoadBlock(Block& rBlock, Block& wBlock)
                   cIdMap[j] << " function  " << fIdMap[j] <<
                   " schema attribute index " << indMap[j] << endl;
 
+            if (CifString::IsEmptyValue(iNameMap[j]))
+            {
+                // Skip if source CIF item is empty
+                continue;
+            }
+
             string tableName;
             CifString::GetCategoryFromCifItem(tableName, iNameMap[j]);
 
@@ -2205,7 +2211,7 @@ void DbLoader::_LoadBlock(Block& rBlock, Block& wBlock)
             if (!dMap[j].empty() && (dMap[j].size() < maxLen))
             {
                 if (_verbose)
-                    _log << " Extending  map column " << j <<
+                    cerr << " Extending  map column " << j <<
                       " with " << dMap[j][0]  << endl;
 
                 for (unsigned int k = dMap[j].size(); k < maxLen; ++k)
@@ -2246,6 +2252,19 @@ void DbLoader::_LoadBlock(Block& rBlock, Block& wBlock)
               "Skipping update for table " << tList[i] <<
               " with inconsistent column lengths." << endl;
 
+            for (unsigned int j = 0; j < nColsMap; ++j)
+            {
+                if (!dMap[j].empty() && (dMap[j].size() != minLen))
+                    cerr << "Check values of the source item \"" <<
+                      iNameMap[j] << "\"\n Its (possibly auto-extended)"\
+                      " size is " << dMap[j].size() <<
+                      " and minimum length is " << minLen << endl;
+                if (!dMap[j].empty() && (dMap[j].size() != maxLen))
+                    cerr << "Check values of the source item \"" <<
+                      iNameMap[j] << "\"\n Its (possibly auto-extended)"\
+                      " size is " << dMap[j].size() <<
+                      " and maximum length is " << maxLen << endl;
+            }
             continue;
         }
       
