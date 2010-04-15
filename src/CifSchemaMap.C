@@ -2055,13 +2055,19 @@ void DbLoader::_LoadBlock(Block& rBlock, Block& wBlock)
         const vector<AttrInfo>& aI = _schemaMapping.GetTableAttributeInfo(
           t->GetName(), t->GetColumnNames(), t->GetColCaseSense());
 
+#ifndef VLAD_REV_ENG
+        // cList is really never used, it seems.
+#endif
         vector<string> cList;
 
-        // Find all the schema defined attributes of the table and put
+        // Find all the schema defined attributes from
+        // _rcsb_attribute_def.attribute_name of the table and put
         // them in cList
         _schemaMapping.GetAttributeNames(cList, tList[i]);
         if (cList.empty())
         {
+            if (_verbose)
+                _log << "VLAD: ERROR: 1" << endl;
             continue;
         }
 
@@ -2091,6 +2097,12 @@ void DbLoader::_LoadBlock(Block& rBlock, Block& wBlock)
         const vector<string>& fIdMap = mappedAttrInfo[3];
 
         // Number of mapped attributes of this table
+#ifndef VLAD_REV_ENG
+        // cNameMap is the column of database attributes, specified in:
+        // _rcsb_attribute_map.target_attribute_name for DB table given
+        // in tList[i]
+        // nColsMap is the number of those attributes
+#endif
         unsigned int nColsMap = cNameMap.size();
 
 
@@ -2107,7 +2119,7 @@ void DbLoader::_LoadBlock(Block& rBlock, Block& wBlock)
             {
 	        if (_verbose)
                     _log << "Data table missing mapped attribute " <<
-                      cNameMap[j] << endl; 
+                      cNameMap[j] << endl;
                 ierr += 1;
                 indMap[j] = -1;
             }
@@ -2118,6 +2130,7 @@ void DbLoader::_LoadBlock(Block& rBlock, Block& wBlock)
 
         if (ierr)
         {
+            _log << "VLAD: ERROR: 2" << endl;
             continue;
         }
 
@@ -2137,7 +2150,6 @@ void DbLoader::_LoadBlock(Block& rBlock, Block& wBlock)
         //
         // Temporary space for extracted data isomorphorous with the table t ...
         //   
-        //
         vector<vector<string> > dMap;
 
         vector<string> tmpVector;
@@ -2157,16 +2169,15 @@ void DbLoader::_LoadBlock(Block& rBlock, Block& wBlock)
                   cIdMap[j] << " function  " << fIdMap[j] <<
                   " schema attribute index " << indMap[j] << endl;
 
-            if (CifString::IsEmptyValue(iNameMap[j]))
+            string tableName;
+            ISTable* t = NULL;
+
+            if (!CifString::IsEmptyValue(iNameMap[j]))
             {
-                // Skip if source CIF item is empty
-                continue;
+                CifString::GetCategoryFromCifItem(tableName, iNameMap[j]);
+                t = rBlock.GetTablePtr(tableName);
             }
 
-            string tableName;
-            CifString::GetCategoryFromCifItem(tableName, iNameMap[j]);
-
-            ISTable* t = rBlock.GetTablePtr(tableName);
 #ifdef VLAD_DEBUG_ATOM_SITE
             if (t != NULL)
               cout << "From CIF file: Table \"" << t->GetName() << "\" has " <<
@@ -2186,6 +2197,11 @@ void DbLoader::_LoadBlock(Block& rBlock, Block& wBlock)
 
         if (!iUpdate || dMap[0].empty() || dMap[1].empty())
         {
+            _log << "VLAD: ERROR: 3 in table " << tList[i] << endl;
+            _log << "iUpdate" << iUpdate << endl;
+            _log << "dMap0size" << dMap[0].size() << endl;
+            _log << "dMap1size" << dMap[1].size() << endl;
+
             continue;
         }
 
@@ -3141,11 +3157,14 @@ bool DbLoader::_Search(
     }
 #endif
 
+    if (CifString::IsEmptyValue(sItem))
+        return(false);
+
     string columnName;
     string tableName;
     CifString::GetItemFromCifItem(columnName, sItem);
     CifString::GetCategoryFromCifItem(tableName, sItem);
-    if (sItem.empty() || columnName.empty() || tableName.empty())
+    if (columnName.empty() || tableName.empty())
         return(false);
 
 
@@ -3799,9 +3818,20 @@ void SqlOutput::WriteData(Block& block, const string& workDir)
 
     for (unsigned int i = 0; i < tableNames.size(); ++i)
     {
+#ifdef VLAD_DEBUG
+        if (tableNames[i] == "pdbx_contact_author")
+        {
+            int a = 1;
+            int b = a + 1;
+            b++;
+        }
+#endif
         if (_db.GetUseOnlyPopulated() &&
           (!_db._schemaMapping.IsTablePopulated(tableNames[i])))
         {
+            cerr << "Skipping non-populated category \"" << tableNames[i] <<
+              "\"" << endl;
+
             continue;
         }
 
