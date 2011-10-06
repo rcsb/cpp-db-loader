@@ -10,6 +10,7 @@
 #include <unistd.h>
 
 #include <exception>
+#include <cstring>
 #include <string>
 #include <iostream>
 #include <fstream>
@@ -461,7 +462,7 @@ static DbOutput* CreateDbOutput(Args& args, Db& db)
 }
  
 
-int main(unsigned int argc, char* argv[])
+int main(int argc, char* argv[])
 {
 
     Args args;

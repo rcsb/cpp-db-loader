@@ -3,6 +3,8 @@
 /*$$DATE$$*/
 /*$$LICENSE$$*/
 
+#include <limits>
+#include <algorithm>
 #include <string>
 #include <vector>
 #include <ostream>
@@ -12,6 +14,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <string.h>
 
 #include "GenString.h"
 #include "DictObjFile.h"
