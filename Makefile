@@ -118,10 +118,15 @@ TARGETS = ${BASE_MAIN_FILES:.ext=}
 TARGET_SCRIPTS =
 
 # Test related files
-TEST_FILES = $(TEST_DIR)/Test-loader.csh \
+TEST_FILES = $(TEST_DIR)/test.sh \
+             $(TEST_DIR)/Test.csh \
+             $(TEST_DIR)/Test-loader.csh \
              $(TEST_DIR)/1ffk.cif \
              $(TEST_DIR)/1jj2.cif \
              $(TEST_DIR)/354d.cif \
+             $(TEST_DIR)/105d.cif.cif \
+             $(TEST_DIR)/mmcif_pdbx.odb \
+             $(TEST_DIR)/ref_schema_map_internal-ndb.cif \
              $(TEST_DIR)/schema_map_pdbx_na.cif
 
 .PHONY: ../etc/Makefile.platform all install test export clean clean_build clean_test
