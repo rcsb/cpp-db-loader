@@ -1309,19 +1309,26 @@ void DbDb2::WriteLoadingTable(ostream& io, const string& tableName,
 }
 
 
-DbMySql::DbMySql(SchemaMap& schemaMapping, const string& dbName) :
-  Db(schemaMapping, dbName)
+DbMySql::DbMySql(SchemaMap& schemaMapping, const string& dbName,
+  const string& dbHost) : Db(schemaMapping, dbName)
 {
 
     _cmdTerm.push_back(';');
 
     _exec = "mysql";
     _execOption = "-f ";
+    _hostOption = "-h ";
     _userOption = "--user=";
     _passOption = "--password=";
  
-    _dbCommand = _exec + " " + _execOption + _userOption +
-      "$dbuser" + " " + _passOption + "$dbpw <";
+    _dbCommand = _exec + " " + _execOption;
+
+    if (!dbHost.empty())
+    {
+        _dbCommand += _hostOption + dbHost + " ";
+    }
+
+    _dbCommand += _userOption + "$dbuser" + " " + _passOption + "$dbpw <";
 
     _envDbUser = "NDB_XDBUSER";
     _envDbPass = "NDB_XDBPW";

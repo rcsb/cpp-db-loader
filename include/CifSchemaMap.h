@@ -111,7 +111,8 @@ class DbMySql : public Db
 
   public:
     DbMySql(SchemaMap& schemaMapping,
-      const string& dbName = DB_DEFAULT_NAME);
+      const std::string& dbName = DB_DEFAULT_NAME,
+      const std::string& dbHost = std::string());
     ~DbMySql();
 
     void GetStart(string& start);

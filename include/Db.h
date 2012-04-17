@@ -125,6 +125,7 @@ class Db
 
     std::string _exec;
     std::string _execOption;
+    std::string _hostOption;
     std::string _userOption;
     std::string _passOption;
 
