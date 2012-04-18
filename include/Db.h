@@ -124,6 +124,7 @@ class Db
     std::string _dbName; // Target database name 
 
     std::string _exec;
+    std::string _verboseOption;
     std::string _execOption;
     std::string _hostOption;
     std::string _userOption;
@@ -134,6 +135,8 @@ class Db
     std::string _dbCommand;
     std::string _envDbUser;
     std::string _envDbPass;
+
+    std::string _dbHost;
 
     std::string _dataLoadingFileName;
 

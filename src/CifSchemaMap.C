@@ -1316,16 +1316,19 @@ DbMySql::DbMySql(SchemaMap& schemaMapping, const string& dbName,
     _cmdTerm.push_back(';');
 
     _exec = "mysql";
+    _verboseOption = "-v ";
     _execOption = "-f ";
     _hostOption = "-h ";
     _userOption = "--user=";
     _passOption = "--password=";
  
+    _dbHost = dbHost;
+
     _dbCommand = _exec + " " + _execOption;
 
-    if (!dbHost.empty())
+    if (!_dbHost.empty())
     {
-        _dbCommand += _hostOption + dbHost + " ";
+        _dbCommand += _hostOption + _dbHost + " ";
     }
 
     _dbCommand += _userOption + "$dbuser" + " " + _passOption + "$dbpw <";
@@ -1354,8 +1357,18 @@ void DbMySql::DropTableSql(ostream& io, const string& tableNameDb)
 void DbMySql::WriteLoad(ostream& io)
 {
 
-    io << "mysql -v -f --user=$dbuser --password=$dbpw < " <<
-      GetDataLoadingFileName()  << endl;
+    string dbCommand;
+
+    dbCommand = _exec + " " + _verboseOption + _execOption;
+
+    if (!_dbHost.empty())
+    {
+        dbCommand += _hostOption + _dbHost + " ";
+    }
+
+    dbCommand += _userOption + "$dbuser" + " " + _passOption + "$dbpw <";
+
+    io << dbCommand + " " << GetDataLoadingFileName()  << endl;
 
 }
 
