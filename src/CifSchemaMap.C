@@ -2052,6 +2052,7 @@ void DbLoader::_LoadBlock(Block& rBlock, Block& wBlock)
     // Create tables in the target schema ...
 
     // List of tables to be updated in the current schema ... 
+    // These are values of column _rcsb_table.table_name
     vector<string> tList;
 
     _schemaMapping.GetAllTablesNames(tList);
@@ -2183,9 +2184,20 @@ void DbLoader::_LoadBlock(Block& rBlock, Block& wBlock)
 
         bool iUpdate = false;
 
-        // For every mapped attribute
+        // For every mapped attribute. For every value of
+        // _rcsb_attribute_map.target_attribute_name that belongs to
+        // _rcsb_attribute_map.target_table_name 
         for (unsigned int j = 0; j < nColsMap; ++j)
         {
+#ifdef VLAD_DEBUG
+
+            if (iNameMap[j] == "_ndb_database_status.entry_id")
+            {
+                int a = 1;
+                int b = a + 1;
+                b++;
+            }
+#endif
             if (_verbose)
                 _log << endl << "*" << endl << "Mapped attribute " << j <<
                   " is " << iNameMap[j] << " condition " <<
@@ -3274,6 +3286,8 @@ bool DbLoader::_Search(
                       " value " << cndVal[i] << endl;
             }
 
+            //cerr << "DEBUG: nEqCnd " << nEqCnd << endl;
+
             if (nEqCnd)
             {
                 // number of join conditions.
@@ -3439,6 +3453,8 @@ bool DbLoader::_Search(
             else
             {
                 // If no join conditions nEqCnd ...
+                // Here, values of _rcsb_attribute_map.source_item_name
+                // are retrieved from data file
                 vector<unsigned int> is;
                 isTableP->Search(is, cndVal, cndCol);
                 if (!is.empty())
