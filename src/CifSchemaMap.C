@@ -2984,10 +2984,9 @@ void DbLoader::_GetMapColumnValue(string& p, vector<string>& dMapVec,
 {
   p.clear();
 
-  int nRows = 0, len = 0;
+  int len = 0;
 
   if (irow >= dMapVec.size()) return;
-  nRows= dMapVec.size();  
 
   len = dMapVec[irow].size();
   if (len > 0) {
