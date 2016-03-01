@@ -114,7 +114,8 @@ struct Args
     string updateMapFile;
     string reviseMapFile;
     string serverType;
-    string mySqlDbHost;
+    bool useMySqlDbHostOption;
+    bool useMySqlDbPortOption;
     string stFile;
     string dictOdbFileName;
     string dictName;
@@ -137,7 +138,8 @@ static void usage(const string& progName)
       << "  [-mapodb <schema mapping serialized (binary) CIF file>]" << endl
       << "  [-server sybase | mysql | oracle | db2] (default is \"sybase\")" <<
       endl
-      << "  [-mySqlDbHost <MySql db host name>] (default is none)" << endl
+      << "  [-useMySqlDbHostOption (default is none)" << endl
+      << "  [-useMySqlDbPortOption (default is none)" << endl
       << "  [-db <database name>] (default is \"msd1\")" << endl
       << "  [-ft <field terminator>] (default is \"\\t\", used only for bcp)" << endl
       << "  [-rt <row terminator>] (default is \"\\n\", used only for bcp)" << endl
@@ -195,6 +197,8 @@ static void GetArgs(Args& args, unsigned int argc, char* argv[])
     args.iScript = false;
     args.iOnlyPopulated = false;
     args.verbose = false;
+    args.useMySqlDbHostOption = false;
+    args.useMySqlDbPortOption = false;
 
     for (unsigned int i = 1; i < argc; ++i)
     {
@@ -250,10 +254,13 @@ static void GetArgs(Args& args, unsigned int argc, char* argv[])
                 i++;
                 args.serverType = argv[i];
             }
-            else if (strcmp(argv[i], "-mySqlDbHost") == 0)
+            else if (strcmp(argv[i], "-useMySqlDbHostOption") == 0)
             {
-                i++;
-                args.mySqlDbHost = argv[i];
+                args.useMySqlDbHostOption = true;
+            }
+            else if (strcmp(argv[i], "-useMySqlDbPortOption") == 0)
+            {
+                args.useMySqlDbPortOption = true;
             }
             else if (strcmp(argv[i], "-rt") == 0)
             {
@@ -394,7 +401,8 @@ static Db* CreateDb(Args& args, SchemaMap& schemaMapping)
         }
         case _SERVER_TYPE_MYSQL:
         {
-            dbP = new DbMySql(schemaMapping, dbName, args.mySqlDbHost);
+            dbP = new DbMySql(schemaMapping, dbName,
+              args.useMySqlDbHostOption, args.useMySqlDbPortOption);
             dbP->SetAppendFlag(false);
             break;
         }

@@ -112,7 +112,8 @@ class DbMySql : public Db
   public:
     DbMySql(SchemaMap& schemaMapping,
       const std::string& dbName = DB_DEFAULT_NAME,
-      const std::string& dbHost = std::string());
+      const bool useMySqlDbHostOption = false,
+      const bool useMySqlDbPortOption = false);
     ~DbMySql();
 
     void GetStart(string& start);
@@ -133,6 +134,9 @@ class DbMySql : public Db
     void WriteNewLine(std::ostream& io, bool special = false);
 
   private:
+    bool _useMySqlDbHostOption;
+    bool _useMySqlDbPortOption;
+
     static const string _SQL_LOADING_FILE;
 
 };

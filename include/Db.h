@@ -68,6 +68,8 @@ class Db
     virtual const std::string& GetUserOption();
     virtual const std::string& GetPassOption();
 
+    virtual const std::string& GetEnvDbHost();
+    virtual const std::string& GetEnvDbPort();
     virtual const std::string& GetEnvDbUser();
     virtual const std::string& GetEnvDbPass();
 
@@ -127,16 +129,17 @@ class Db
     std::string _verboseOption;
     std::string _execOption;
     std::string _hostOption;
+    std::string _portOption;
     std::string _userOption;
     std::string _passOption;
 
     std::string _connect;
     std::string _terminate;
     std::string _dbCommand;
+    std::string _envDbHost;
+    std::string _envDbPort;
     std::string _envDbUser;
     std::string _envDbPass;
-
-    std::string _dbHost;
 
     std::string _dataLoadingFileName;
 

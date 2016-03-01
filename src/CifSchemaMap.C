@@ -332,6 +332,22 @@ const string& Db::GetPassOption()
 }
 
 
+const string& Db::GetEnvDbHost()
+{
+
+    return(_envDbHost);
+
+}
+
+
+const string& Db::GetEnvDbPort()
+{
+
+    return(_envDbPort);
+
+}
+
+
 const string& Db::GetEnvDbUser()
 {
 
@@ -1310,7 +1326,8 @@ void DbDb2::WriteLoadingTable(ostream& io, const string& tableName,
 
 
 DbMySql::DbMySql(SchemaMap& schemaMapping, const string& dbName,
-  const string& dbHost) : Db(schemaMapping, dbName)
+  const bool useMySqlDbHostOption, const bool useMySqlDbPortOption) :
+  Db(schemaMapping, dbName)
 {
 
     _cmdTerm.push_back(';');
@@ -1318,21 +1335,30 @@ DbMySql::DbMySql(SchemaMap& schemaMapping, const string& dbName,
     _exec = "mysql";
     _verboseOption = "-v ";
     _execOption = "-f ";
-    _hostOption = "-h ";
+    _hostOption = "--host=";
+    _portOption = "--port=";
     _userOption = "--user=";
     _passOption = "--password=";
  
-    _dbHost = dbHost;
+    _useMySqlDbHostOption = useMySqlDbHostOption;
+    _useMySqlDbPortOption = useMySqlDbPortOption;
 
     _dbCommand = _exec + " " + _execOption;
 
-    if (!_dbHost.empty())
+    if (_useMySqlDbHostOption)
     {
-        _dbCommand += _hostOption + _dbHost + " ";
+        _dbCommand += _hostOption + "$dbhost" + " ";
+    }
+
+    if (_useMySqlDbPortOption)
+    {
+        _dbCommand += _portOption + "$dbport" + " ";
     }
 
     _dbCommand += _userOption + "$dbuser" + " " + _passOption + "$dbpw <";
 
+    _envDbHost = "NDB_XHOST";
+    _envDbPort = "NDB_XPORT";
     _envDbUser = "NDB_XDBUSER";
     _envDbPass = "NDB_XDBPW";
 
@@ -1361,9 +1387,14 @@ void DbMySql::WriteLoad(ostream& io)
 
     dbCommand = _exec + " " + _verboseOption + _execOption;
 
-    if (!_dbHost.empty())
+    if (_useMySqlDbHostOption)
     {
-        dbCommand += _hostOption + _dbHost + " ";
+        dbCommand += _hostOption + "$dbhost" + " ";
+    }
+
+    if (_useMySqlDbPortOption)
+    {
+        _dbCommand += _portOption + "$dbport" + " ";
     }
 
     dbCommand += _userOption + "$dbuser" + " " + _passOption + "$dbpw <";
@@ -1772,6 +1803,20 @@ void DbOutput::WriteHeader(ostream& io)
 
     io << "set dbuser = $" << _db.GetEnvDbUser() << endl;
     io << "set dbpw = $" << _db.GetEnvDbPass() << endl;
+
+    const string& envDbHost = _db.GetEnvDbHost();
+
+    if (!envDbHost.empty())
+    {
+        io << "set dbhost = $" << envDbHost << endl;
+    }
+
+    const string& envDbPort = _db.GetEnvDbPort();
+
+    if (!envDbPort.empty())
+    {
+        io << "set dbport = $" << envDbPort << endl;
+    }
 
 }
 
