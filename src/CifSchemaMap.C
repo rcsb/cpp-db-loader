@@ -1808,14 +1808,16 @@ void DbOutput::WriteHeader(ostream& io)
 
     if (!envDbHost.empty())
     {
-        io << "set dbhost = $" << envDbHost << endl;
+        io << "if ( ($?" << envDbHost << ") ) then\n    set dbhost = $" <<
+          envDbHost << "\nendif" << endl;
     }
 
     const string& envDbPort = _db.GetEnvDbPort();
 
     if (!envDbPort.empty())
     {
-        io << "set dbport = $" << envDbPort << endl;
+        io << "if ( ($?" << envDbPort << ") ) then\n    set dbport = $" <<
+          envDbPort << "\nendif" << endl;
     }
 
 }
