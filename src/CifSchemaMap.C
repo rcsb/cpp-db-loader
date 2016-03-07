@@ -1394,7 +1394,7 @@ void DbMySql::WriteLoad(ostream& io)
 
     if (_useMySqlDbPortOption)
     {
-        _dbCommand += _portOption + "$dbport" + " ";
+        dbCommand += _portOption + "$dbport" + " ";
     }
 
     dbCommand += _userOption + "$dbuser" + " " + _passOption + "$dbpw <";
