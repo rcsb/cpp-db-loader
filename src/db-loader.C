@@ -138,8 +138,8 @@ static void usage(const string& progName)
       << "  [-mapodb <schema mapping serialized (binary) CIF file>]" << endl
       << "  [-server sybase | mysql | oracle | db2] (default is \"sybase\")" <<
       endl
-      << "  [-useMySqlDbHostOption (default is none)" << endl
-      << "  [-useMySqlDbPortOption (default is none)" << endl
+      << "  [-useMySqlDbHostOption] (default is none)" << endl
+      << "  [-useMySqlDbPortOption] (must be used with -useMySqlDbHostOption; default is none)" << endl
       << "  [-db <database name>] (default is \"msd1\")" << endl
       << "  [-ft <field terminator>] (default is \"\\t\", used only for bcp)" << endl
       << "  [-rt <row terminator>] (default is \"\\n\", used only for bcp)" << endl
@@ -329,6 +329,11 @@ static void GetArgs(Args& args, unsigned int argc, char* argv[])
         }
     }
 
+    if (args.useMySqlDbPortOption && !args.useMySqlDbHostOption)
+    {
+        usage(progName);
+        throw InvalidOptionsException();
+    }
 }
 
 
