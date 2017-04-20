@@ -19,6 +19,7 @@
 #include "GenString.h"
 #include "DictObjFile.h"
 #include "DictObjCont.h"
+#include "CifFileReadDef.h"
 #include "CifFileUtil.h"
 #include "CifSchemaMap.h"
 
@@ -1947,7 +1948,8 @@ void DbLoader::SetHashMode(int mode)
 }
 #endif
 
-void DbLoader::AsciiFileToDb(const string& inpFile, const eConvOpt convOpt) 
+void DbLoader::AsciiFileToDb(const string& inpFile, const eConvOpt convOpt,
+  const vector<string>& skipCatList)
 {
 
     _INPUT_FILE = inpFile;
@@ -1959,8 +1961,16 @@ void DbLoader::AsciiFileToDb(const string& inpFile, const eConvOpt convOpt)
         if (_verbose)
             _log << "Reading input file  " << inpFile << endl;
 
-        fobjR = ParseCif(inpFile, _verbose, Char::eCASE_SENSITIVE,
-          SchemaMap::_MAX_LINE_LENGTH);  
+        // Allow parsing all data blocks, but do not parse categories
+        // indicated in skipCatList
+        CifFileReadDef readDef;
+
+        readDef.SetCategoryList(skipCatList, D);
+        vector<string> skipBlockList;
+        readDef.SetDataBlockList(skipBlockList, D);
+
+        fobjR = ParseCifSelective(inpFile, readDef, _verbose,
+          (int)Char::eCASE_SENSITIVE, SchemaMap::_MAX_LINE_LENGTH);
 
         const string& parsingDiags = fobjR->GetParsingDiags();
 

@@ -107,6 +107,7 @@ struct Args
     string mFileODB;
     string lFile;
     string iFile;
+    string skipCatFile;
     string dbName;
     string mFile;
     string rTerm;
@@ -149,6 +150,7 @@ static void usage(const string& progName)
       << "  -f <ASCII CIF file> [-revise <revised schema file>] |" << endl
       << "  -list <file list> [-revise <revised schema file>] [-stop <stop "\
       "file>] |" << endl
+      << "  --skipCatFile <file with CIF categories to skip>"\
       << "  -update <update schema file> -revise <revised schema file>" <<
       endl 
       << "  [-dictOdb <dict odb> -dict <dict name> [-ns namespace]] (only with -xml flag)"
@@ -228,6 +230,11 @@ static void GetArgs(Args& args, unsigned int argc, char* argv[])
             {
                 i++;
                 args.lFile = argv[i];
+            }
+            else if (strcmp(argv[i], "-skipCatFile") == 0)
+            {
+                i++;
+                args.skipCatFile = argv[i];
             }
             else if (strcmp(argv[i], "-bcp") == 0)
             {
@@ -357,6 +364,27 @@ static void GetFileNames(vector<string>& fileNames, const string& lFile)
 
     infile.close();
 
+}
+
+
+static void extractSkipCatList(vector<string>& skipCatList, const string& sFile)
+{
+    skipCatList.clear();
+
+    ifstream infile(sFile.c_str());
+
+    while (true)
+    {
+        string fileName;
+        getline(infile, fileName);
+
+        if (infile.eof() || infile.fail())
+            break;
+
+        skipCatList.push_back(fileName);
+    }
+
+    infile.close();
 }
 
 
@@ -564,10 +592,17 @@ int main(int argc, char* argv[])
         return(0);
     }
 
+    vector<string> skipCatList;
+    if (!args.skipCatFile.empty())
+    {
+        extractSkipCatList(skipCatList, args.skipCatFile);
+    }
+
     if (!args.iFile.empty())
     {
         dbOutputP->SetInputFile(args.iFile);
-        dbl->AsciiFileToDb(args.iFile, DbLoader::eDATA_WITH_SCRIPTS);
+        dbl->AsciiFileToDb(args.iFile, DbLoader::eDATA_WITH_SCRIPTS,
+          skipCatList);
     }
     else if (!args.lFile.empty())
     {
@@ -587,9 +622,11 @@ int main(int argc, char* argv[])
             dbOutputP->SetInputFile(fileNames[i]);
             if (i == (nFiles - 1))
                 // This is the last processed file. Also generate script.
-                dbl->AsciiFileToDb(fileNames[i], DbLoader::eDATA_WITH_SCRIPTS);
+                dbl->AsciiFileToDb(fileNames[i], DbLoader::eDATA_WITH_SCRIPTS,
+                  skipCatList);
             else
-                dbl->AsciiFileToDb(fileNames[i], DbLoader::eDATA_ONLY);
+                dbl->AsciiFileToDb(fileNames[i], DbLoader::eDATA_ONLY,
+                  skipCatList);
 
             time(&tEnd);
 

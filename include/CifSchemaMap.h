@@ -346,6 +346,8 @@ class DbLoader
     **  \param[in] convOpt - indicates data conversion options: generate
     **    data only, generate data with loading scripts, generate loading
     **    scripts only.
+    **  \param[in] skipCatList - optional parameter which indicates a list
+    **    of categories not to be parsed from the file.
     **
     **  \return None
     **
@@ -355,7 +357,8 @@ class DbLoader
     **
     **  \exception: None
     */
-    void AsciiFileToDb(const string& asciiFile, const eConvOpt convOpt);
+    void AsciiFileToDb(const string& asciiFile, const eConvOpt convOpt,
+      const vector<string>& skipCatList = std::vector<std::string>());
 
     /**
     **  Converts a serialized (binary) CIF file to DB loadable data
