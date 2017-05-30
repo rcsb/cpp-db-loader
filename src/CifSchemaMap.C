@@ -3087,6 +3087,7 @@ void DbLoader::CreateTables(CifFile& writeCifFile, CifFile& readCifFile)
     // Create special tables rcsb_tableinfo, rcsb_columninfo
     // Crate their attributes
 
+#ifdef RCSB_TABLEINFO_COLUMNINFO
     ISTable* isTableP = new ISTable("rcsb_tableinfo");
     vector<string> attribNames;
     _schemaMapping.GetAttributeNames(attribNames, "rcsb_tableinfo");
@@ -3109,6 +3110,7 @@ void DbLoader::CreateTables(CifFile& writeCifFile, CifFile& readCifFile)
     }
 
     outBlock.WriteTable(isTableP);
+#endif // RCSB_TABLEINFO_COLUMNINFO
 }
 
 
@@ -3659,6 +3661,7 @@ void SqlOutput::WriteSchema(const string& workDir)
 
     iod.close();
 
+#ifdef RCSB_TABLEINFO_COLUMNINFO
     //
     // Create tableinfo and columninfo tables which contain data about schema.
     //
@@ -3677,6 +3680,7 @@ void SqlOutput::WriteSchema(const string& workDir)
 
     if (cinfo != NULL)
         delete cinfo;
+#endif // RCSB_TABLEINFO_COLUMNINFO
 
     io.close();
 
