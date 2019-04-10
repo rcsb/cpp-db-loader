@@ -96,7 +96,8 @@ class Db
       const unsigned int curr, const unsigned int attSize);
     virtual void WriteTableIndex(std::ostream& io,
       const std::string& tableNameDb,
-      const vector<std::string>& indexList);
+      const vector<std::string>& indexList,
+      const vector<string>& indexListTypes=vector<string>());
 
     const std::string& GetBcpStringDelimiter();
     virtual void WriteBcpDoubleQuotes(std::ostream& io);

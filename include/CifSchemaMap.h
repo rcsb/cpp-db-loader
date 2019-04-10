@@ -55,7 +55,8 @@ class DbOracle : public Db
     void WriteNull(std::ostream& io, const int iNull,
       const unsigned int curr, const unsigned int attSize);
     void WriteTableIndex(std::ostream& io, const string& tableNameDb,
-      const vector<string>& indexList);
+      const vector<string>& indexList, 
+      const vector<string>& indexListTypes=vector<string>());
 
     void WriteNewLine(std::ostream& io, bool special = false);
 };
@@ -93,8 +94,8 @@ class DbDb2 : public Db
       const unsigned int curr, const unsigned int attSize);
 
     void WriteTableIndex(std::ostream& io, const string& tableNameDb,
-      const vector<string>& indexList);
-
+      const vector<string>& indexList,
+      const vector<string>& indexListTypes=vector<string>());
     void WriteBcpDoubleQuotes(std::ostream& io);
 };
 
@@ -126,7 +127,8 @@ class DbMySql : public Db
       const string& path);
 
     void WriteTableIndex(std::ostream& io, const string& tableNameDb,
-      const vector<string>& indexList);
+      const vector<string>& indexList,
+      const vector<string>& indexListTypes=vector<string>());
 
     void WriteNull(std::ostream& io, const int iNull,
       const unsigned int curr, const unsigned int attSize);
@@ -167,7 +169,8 @@ class DbSybase : public Db
       const unsigned int curr, const unsigned int attSize);
 
     void WriteTableIndex(std::ostream& io, const string& tableNameDb,
-      const vector<string>& indexList);
+      const vector<string>& indexList,
+      const vector<string>& indexListTypes=vector<string>());
 
     void GetDateAndTime(string& dateAndTime);
 
