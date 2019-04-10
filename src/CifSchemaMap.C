@@ -3,10 +3,6 @@
 /*$$DATE$$*/
 /*$$LICENSE$$*/
 
-//DEBUG
-#include <iostream>
-//DEBUG
-
 #include <limits>
 #include <algorithm>
 #include <string>
@@ -847,12 +843,6 @@ void DbDb2::WriteTableIndex(ostream& io, const string& tableNameDb,
 void DbMySql::WriteTableIndex(ostream& io, const string& tableNameDb,
       const vector<string>& indexList, const vector<string>& indexListTypes)
 {
-    // debug
-    for (unsigned int j = 0; j < indexListTypes.size(); ++j)
-    {
-        std::cout << "debug: types: " << indexListTypes[j] << std::endl;
-    }
-    // debug
 
     io << ")" <<  _cmdTerm << endl << endl;  // end of create table clause
 
@@ -867,13 +857,8 @@ void DbMySql::WriteTableIndex(ostream& io, const string& tableNameDb,
             io << indexList[i];
             if (!indexListTypes.empty())
             {
-                std::cout << "debug table :" << tableNameDb << std::endl;
-                std::cout << "debug index type :" << indexListTypes[i] << std::endl;
-                std::cout << "debug attribute:" << indexList[i] << std::endl;
-       
                 if (indexListTypes[i] == "text")
                 {
-                    std::cout << "debug (200) attribute:" << indexList[i] << std::endl;
                     // HARDCODED. FIX THIS.
                     io << "(200)"; 
                 }
@@ -1284,9 +1269,6 @@ void SqlOutput::CreateTableSql(ostream& io, const string& tableName)
         {
             indexList.push_back(columnNameDb);
             indexListTypes.push_back(attrInfo[i].dataType);
-            std::cout << "debug debug attr full :" << attrInfo[i].attribName << std::endl;
-            std::cout << "debug debug attr :" << columnNameDb << std::endl;
-            std::cout << "debug debug type :" << attrInfo[i].dataType << std::endl;
         }
     }
 
