@@ -2978,7 +2978,7 @@ void DbLoader::_DoFunc(vector<string>& s, const vector<string>& r,
 	            s.push_back("");	  
 	        }
             }
-            if (p) delete p;
+            if (p) delete[] p;
         }
     }
     else if (sFnct == "first()")
@@ -4221,7 +4221,7 @@ void Db::GetDateAndTime(string& dateAndTime)
 
     dateAndTime = p;
 
-    delete (p);
+    delete[] p;
 }
 
 
@@ -4238,7 +4238,7 @@ void DbSybase::GetDateAndTime(string& dateAndTime)
 
     dateAndTime = p;
 
-    delete (p);
+    delete[] p;
 }
 
 
@@ -4673,8 +4673,8 @@ void DbLoader::_ReorderName(string& res, char *aString, int mode)
       else 
 	sprintf(aString, "%s %s%c", first, last, c);
     }
-    delete first;
-    delete last;
+    delete[] first;
+    delete[] last;
     res = aString;
     return;
     
@@ -4690,8 +4690,8 @@ void DbLoader::_ReorderName(string& res, char *aString, int mode)
       sprintf(aString, "%s, %s%c", last, first,c);
       res = aString;
       CleanString(res);
-      delete first;
-      delete last;
+      delete[] first;
+      delete[] last;
       return;
     }
     
@@ -4706,8 +4706,8 @@ void DbLoader::_ReorderName(string& res, char *aString, int mode)
       res = aString;
       CleanString(res);
     }
-    delete first;
-    delete last;
+    delete[] first;
+    delete[] last;
     return;
   }
 }  
