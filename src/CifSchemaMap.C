@@ -1349,7 +1349,7 @@ DbMySql::DbMySql(SchemaMap& schemaMapping, const string& dbName,
 
     _exec = "mysql";
     _verboseOption = "-v ";
-    _execOption = "-f ";
+    _execOption = "-f --local-infile ";
     _hostOption = "--host=";
     _portOption = "--port=";
     _userOption = "--user=";
