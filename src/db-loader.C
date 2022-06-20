@@ -129,6 +129,7 @@ struct Args
     bool iScript;
     bool iOnlyPopulated;
     bool verbose;
+    bool firstDataBlock;
 };
 
 
@@ -147,6 +148,7 @@ static void usage(const string& progName)
       << "  (-sql | -bcp | -xml ) (output format)" << endl
       << "  -schema [-populated] |" << endl
       << "  -script |" << endl
+      << "  -firstDataBlock |" << endl
       << "  -f <ASCII CIF file> [-revise <revised schema file>] |" << endl
       << "  -list <file list> [-revise <revised schema file>] [-stop <stop "\
       "file>] |" << endl
@@ -201,6 +203,7 @@ static void GetArgs(Args& args, unsigned int argc, char* argv[])
     args.verbose = false;
     args.useMySqlDbHostOption = false;
     args.useMySqlDbPortOption = false;
+    args.firstDataBlock = false;
 
     for (unsigned int i = 1; i < argc; ++i)
     {
@@ -322,6 +325,10 @@ static void GetArgs(Args& args, unsigned int argc, char* argv[])
             {
                 ++i;
                 args.ns = argv[i];
+            }
+            else if (strcmp(argv[i], "-firstDataBlock") == 0)
+            {
+                args.firstDataBlock = true;
             }
             else
             {
@@ -578,6 +585,9 @@ int main(int argc, char* argv[])
 #ifdef DB_HASH_ID
     dbl->SetHashMode(args.iHash);
 #endif
+
+    if (args.firstDataBlock) 
+      dbl->SetFirstDataBlock();
 
     if (args.iScript)
     {

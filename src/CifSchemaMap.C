@@ -1915,6 +1915,8 @@ DbLoader::DbLoader(SchemaMap& schemaMapping, DbOutput& dbOutput,
 
   // Set default values  ...  These can be overridden if necessary .
 
+  _firstDatablock = false;
+
   _blockName = "loadable";
 
   if (_verbose) {
@@ -2054,6 +2056,12 @@ void DbLoader::FileObjToDb(CifFile& fobjR, const eConvOpt convOpt)
         unsigned int numBlocks = blockNames.size();
         for (unsigned i = 0; i < numBlocks; ++i)
         {
+
+	    if (_firstDatablock == true && i > 0) {
+	      /* Skip non-first block */
+	      continue;
+	    }
+	  
             if (blockNames[i].empty())
             {
                 cerr << "Skipping unnamed block " << endl;
@@ -4839,6 +4847,9 @@ void DbLoader::_StripString(string& aString, int mode)
 
 }
 
+void DbLoader::SetFirstDataBlock() {
+  _firstDatablock = true;
+}
 
 static void escapeString(string& outStr, const string& inStr)
 {

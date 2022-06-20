@@ -404,6 +404,20 @@ class DbLoader
     */
     void FileObjToDb(CifFile& cifFile, const eConvOpt convOpt);
 
+    /**
+    **  Enables output of only the first datablock in CIF file
+    **
+    **  \return None
+    **
+    **  \pre None
+    **
+    **  \post None
+    **
+    **  \exception: None
+    */
+    void SetFirstDataBlock();
+
+
 #ifdef DB_HASH_ID
     void SetHashMode(int mode);
 #endif
@@ -423,6 +437,8 @@ class DbLoader
     string _blockName;
 
     bool _verbose;
+
+    bool _firstDatablock;
 
     std::ofstream _log;
 
