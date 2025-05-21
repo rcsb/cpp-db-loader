@@ -9,7 +9,7 @@
 #include <vector>
 #include <ostream>
 #include <fstream>
- 
+
 #include <time.h>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -213,7 +213,7 @@ void SqlOutput::WriteSqlScriptSchemaInfo(ostream& io)
 
     // VLAD - IMPROVE
     // WriteScriptSchemaInfo can be created and used by BcpOutput.
- 
+
     WriteHeader(io);
     io << endl;
 
@@ -467,6 +467,30 @@ void DbDb2::GetText(string& dType, const unsigned int width)
 }
 
 
+void DbMySql::GetText(string& dType, const unsigned int width)
+{
+    // First check if this table has been optimized
+    if (_tableOptimized) {
+        // Find the column by width in our optimized list
+        for (unsigned int i = 0; i < _tableColumns.size(); i++) {
+            if (_tableColumns[i].widthChars == width) {
+                // Use the pre-calculated column type
+                dType = _tableColumns[i].columnType;
+                return;
+            }
+        }
+    }
+
+    // Fall back to simple threshold-based decision if table not optimized
+    // or column not found in the optimization list
+    if (width < 32000) {
+        dType = "TEXT";
+    } else {
+        dType = "MEDIUMTEXT";
+    }
+}
+
+
 void Db::GetFloat(string& dType)
 {
 
@@ -498,7 +522,7 @@ void DbOutput::_FormatData(ostream& io, const string& cs,
 {
     switch (type)
     {
-        case eTYPE_CODE_INT: 
+        case eTYPE_CODE_INT:
         case eTYPE_CODE_FLOAT:
         case eTYPE_CODE_BIGINT:
         {
@@ -566,7 +590,7 @@ void SqlOutput::GetTableStart(string& tableStart, const string& tableName)
     _db._schemaMapping.GetTableNameAbbrev(tableNameDb, tableName);
 
     tableStart = "INSERT INTO " + tableNameDb + "\n" + "VALUES (";
- 
+
 }
 
 
@@ -860,7 +884,7 @@ void DbMySql::WriteTableIndex(ostream& io, const string& tableNameDb,
                 if (indexListTypes[i] == "text")
                 {
                     // HARDCODED. FIX THIS.
-                    io << "(200)"; 
+                    io << "(200)";
                 }
             }
 
@@ -1065,18 +1089,18 @@ void DbOracle::WriteLoadingTable(ostream& io, const string& tableName,
         ioctl << "INFILE '" << tName << "'  \"str '" << rs << "'\"" << endl;
         ioctl << "BADFILE '" << bFile <<"'" << endl;
         ioctl << "DISCARDMAX 100000"  << endl;
-  
+
         if (_appendFlag)
             ioctl << "APPEND" << endl;
-        else 
+        else
             ioctl << "TRUNCATE" << endl;
-      
+
         ioctl << "INTO TABLE " << tableNameDb << endl;
         ioctl << "FIELDS TERMINATED BY '" << fs << "'" << endl;
         ioctl << "TRAILING NULLCOLS" << endl;
-  
+
         ioctl << "(";
-  
+
         for (unsigned int j = 0; j < nCols; ++j)
         {
             string columnNameDb;
@@ -1085,7 +1109,7 @@ void DbOracle::WriteLoadingTable(ostream& io, const string& tableName,
 
             switch (aI[j].iTypeCode)
             {
-                case eTYPE_CODE_INT: 
+                case eTYPE_CODE_INT:
                 case eTYPE_CODE_FLOAT:
 	        case eTYPE_CODE_BIGINT:
 	            ioctl <<  columnNameDb;
@@ -1209,6 +1233,12 @@ void SqlOutput::CreateTableSql(ostream& io, const string& tableName)
     vector<string> indexList;
     vector<string> indexListTypes;
 
+    // If we're using MySQL, run table optimization for large text fields
+    DbMySql* mysqlDb = dynamic_cast<DbMySql*>(&_db);
+    if (mysqlDb != NULL) {
+        mysqlDb->OptimizeTableColumns(tableName, attrInfo);
+    }
+
     for (unsigned int i = 0; i < attrInfo.size(); ++i)
     {
         if (_db.GetUseOnlyPopulated() && (attrInfo[i].populated != "Y"))
@@ -1272,6 +1302,11 @@ void SqlOutput::CreateTableSql(ostream& io, const string& tableName)
         }
     }
 
+    // Clear MySQL table optimization if used
+    if (mysqlDb != NULL) {
+        mysqlDb->ClearTableOptimization();
+    }
+
     io << endl;
 
     _db.WriteTableIndex(io, tableNameDb, indexList, indexListTypes);
@@ -1325,13 +1360,13 @@ void DbDb2::WriteLoadingTable(ostream& io, const string& tableName,
     int istat = stat(tName.c_str(), &statbuf);
     while (istat == 0 && statbuf.st_size > 0)
     {
-        io << "echo \"Loading data from file  " << tName << "\"" << endl; 
+        io << "echo \"Loading data from file  " << tName << "\"" << endl;
         io << "db2 \"load from " << tName <<
           " of del modified by delprioritychar anyorder ";
         io << " messages " << mFile << " insert into ";
         io << tableNameDb << "\"" <<  endl;
         io << endl;
-      
+
         // +++++++++++++++++
         tName += "+";
         istat = stat(tName.c_str(), &statbuf);
@@ -1354,7 +1389,7 @@ DbMySql::DbMySql(SchemaMap& schemaMapping, const string& dbName,
     _portOption = "--port=";
     _userOption = "--user=";
     _passOption = "--password=";
- 
+
     _useMySqlDbHostOption = useMySqlDbHostOption;
     _useMySqlDbPortOption = useMySqlDbPortOption;
 
@@ -1378,6 +1413,8 @@ DbMySql::DbMySql(SchemaMap& schemaMapping, const string& dbName,
     _envDbPass = "NDB_XDBPW";
 
     _dataLoadingFileName = _SQL_LOADING_FILE;
+
+    _tableOptimized = false;
 }
 
 
@@ -1452,7 +1489,7 @@ void DbMySql::WriteLoadingTable(ostream& io, const string& tableName,
           endl;
 
         tName += "+";
-        istat = stat(tName.c_str(), &statbuf);      
+        istat = stat(tName.c_str(), &statbuf);
     }
 }
 
@@ -1505,7 +1542,7 @@ void DbSybase::WriteLoadingTable(ostream& io, const string& tableName,
     escapeString(fs, _fieldSeparator);
     escapeString(rs, _rowSeparator);
 
-    io << "if (-e " << tableName << ".bcp && ! -z " 
+    io << "if (-e " << tableName << ".bcp && ! -z "
       << tableName << ".bcp) then" << endl;
     io << "   echo \"Loading table " << tableName << "\" "<< endl;
     io << "   $SYBASE/bin/bcp " << _dbName << ".." << tableName <<
@@ -1616,7 +1653,7 @@ void DbOutput::_FormatNumericData(ostream &io,  const string &cs)
 
     if (CifString::IsEmptyValue(cs))
     {
-        WriteEmptyNumeric(io); 
+        WriteEmptyNumeric(io);
         return;
     }
 
@@ -1649,7 +1686,7 @@ void DbOutput::_FormatStringData(ostream& io,  const string& cs,
   const unsigned int maxWidth)
 {
 
-    // A null string or the special CIF characters are treated as NULL . 
+    // A null string or the special CIF characters are treated as NULL .
     if (CifString::IsEmptyValue(cs))
     {
         WriteEmptyString(io);
@@ -1747,7 +1784,7 @@ void DbOutput::_FormatDateData(ostream& io, const string& cs,
 void DbOutput::_FormatTextData(ostream &io,  const string &cs)
 {
 
-    // A null string or the special CIF characters are treated as NULL . 
+    // A null string or the special CIF characters are treated as NULL .
     if (CifString::IsEmptyValue(cs))
     {
         WriteEmptyString(io);
@@ -1883,7 +1920,7 @@ SqlOutput::~SqlOutput()
 
 
 void DbLoader::Clear() {
-   
+
 
   _verbose       = false;
 
@@ -2036,7 +2073,7 @@ void DbLoader::FileObjToDb(CifFile& fobjR, const eConvOpt convOpt)
     if (convOpt != eSCRIPTS_ONLY)
     {
         CifFile* fobjW = new CifFile(_verbose, Char::eCASE_SENSITIVE,
-          SchemaMap::_MAX_LINE_LENGTH);  
+          SchemaMap::_MAX_LINE_LENGTH);
 
 #ifdef VLAD_LATER_FIX
         CreateTables(*fobjW, fobjR);
@@ -2061,7 +2098,7 @@ void DbLoader::FileObjToDb(CifFile& fobjR, const eConvOpt convOpt)
 	      /* Skip non-first block */
 	      continue;
 	    }
-	  
+
             if (blockNames[i].empty())
             {
                 cerr << "Skipping unnamed block " << endl;
@@ -2071,7 +2108,7 @@ void DbLoader::FileObjToDb(CifFile& fobjR, const eConvOpt convOpt)
             if (_verbose)
                 _log << "Loading block " << i + 1 << " " << blockNames[i] <<
                   endl;
- 
+
 #ifdef DB_HASH_ID
             if (_hashMode == 1)
             {
@@ -2130,7 +2167,7 @@ void DbLoader::_LoadBlock(Block& rBlock, Block& wBlock)
 
     // Create tables in the target schema ...
 
-    // List of tables to be updated in the current schema ... 
+    // List of tables to be updated in the current schema ...
     // These are values of column _rcsb_table.table_name
     vector<string> tList;
 
@@ -2184,8 +2221,8 @@ void DbLoader::_LoadBlock(Block& rBlock, Block& wBlock)
         if (mappedAttrInfo.empty())
         {
             if (_verbose)
-                _log << "No mapped attributes for " << tList[i] << endl;      
-            continue; 
+                _log << "No mapped attributes for " << tList[i] << endl;
+            continue;
         }
 
         // Get mapped attribute names of this table
@@ -2252,7 +2289,7 @@ void DbLoader::_LoadBlock(Block& rBlock, Block& wBlock)
 
         //
         // Temporary space for extracted data isomorphorous with the table t ...
-        //   
+        //
         vector<vector<string> > dMap;
 
         vector<string> tmpVector;
@@ -2265,7 +2302,7 @@ void DbLoader::_LoadBlock(Block& rBlock, Block& wBlock)
 
         // For every mapped attribute. For every value of
         // _rcsb_attribute_map.target_attribute_name that belongs to
-        // _rcsb_attribute_map.target_table_name 
+        // _rcsb_attribute_map.target_table_name
         for (unsigned int j = 0; j < nColsMap; ++j)
         {
 #ifdef VLAD_DEBUG
@@ -2345,7 +2382,7 @@ void DbLoader::_LoadBlock(Block& rBlock, Block& wBlock)
                       " with " << dMap[j][0]  << endl;
 
                 for (unsigned int k = dMap[j].size(); k < maxLen; ++k)
-                { 
+                {
                     dMap[j].push_back(dMap[j][0]);
                 }
             }
@@ -2397,9 +2434,9 @@ void DbLoader::_LoadBlock(Block& rBlock, Block& wBlock)
             }
             continue;
         }
-      
+
         //
-        //  Mapping OK, Update table ... 
+        //  Mapping OK, Update table ...
         //
         if (_verbose)
             _log << " Table length = " << minLen << endl;
@@ -2440,8 +2477,8 @@ void DbLoader::_LoadBlock(Block& rBlock, Block& wBlock)
             }
 
             if (iskip)
-                continue; 
-	    
+                continue;
+
             if (_verbose)
             {
                 unsigned int iRow = t->GetNumRows();
@@ -2804,7 +2841,7 @@ void DbLoader::_DoFunc(vector<string>& s, const vector<string>& r,
             int ilen  = 0;
             for (i=0; i < (int) r.size(); i++)
             {
-	        ilen += r[i].size() + 3; 
+	        ilen += r[i].size() + 3;
             }
             char *buf = (char *) calloc(ilen+1, sizeof(char));
             strcpy(buf,"");
@@ -2816,7 +2853,7 @@ void DbLoader::_DoFunc(vector<string>& s, const vector<string>& r,
             }
             cs.clear(); cs = buf;
             free(buf);
-      
+
             s.push_back(cs);
         }
     }
@@ -2831,7 +2868,7 @@ void DbLoader::_DoFunc(vector<string>& s, const vector<string>& r,
             int ilen  = 0;
             for (i=0; i < (int) r.size(); i++)
             {
-	        ilen += r[i].size() + 2; 
+	        ilen += r[i].size() + 2;
             }
             char *buf = (char *) calloc(ilen+1, sizeof(char));
             strcpy(buf,"");
@@ -2844,7 +2881,7 @@ void DbLoader::_DoFunc(vector<string>& s, const vector<string>& r,
             }
             cs.clear(); cs = buf;
             free(buf);
-      
+
             s.push_back(cs);
         }
     }
@@ -2859,7 +2896,7 @@ void DbLoader::_DoFunc(vector<string>& s, const vector<string>& r,
             int ilen  = 0;
             for (i=0; i < (int) r.size(); i++)
             {
-	        ilen += r[i].size() + 2; 
+	        ilen += r[i].size() + 2;
             }
             char *buf = (char *) calloc(ilen+1, sizeof(char));
            strcpy(buf,"");
@@ -2869,7 +2906,7 @@ void DbLoader::_DoFunc(vector<string>& s, const vector<string>& r,
 	       strcat(buf," ");
            }
            cs.clear(); cs = buf;
-           free(buf);      
+           free(buf);
 
            s.push_back(cs);
         }
@@ -2885,7 +2922,7 @@ void DbLoader::_DoFunc(vector<string>& s, const vector<string>& r,
             int ilen  = 0;
             for (i=0; i < (int) r.size(); i++)
             {
-	        ilen += r[i].size(); 
+	        ilen += r[i].size();
             }
             char *buf = (char *) calloc(ilen+1, sizeof(char));
             strcpy(buf,"");
@@ -2894,7 +2931,7 @@ void DbLoader::_DoFunc(vector<string>& s, const vector<string>& r,
 	        strcat(buf, r[i].c_str());
             }
             cs.clear(); cs = buf;
-            free(buf);      
+            free(buf);
 
             s.push_back(cs);
         }
@@ -2926,7 +2963,7 @@ void DbLoader::_DoFunc(vector<string>& s, const vector<string>& r,
 	        if (!CifString::IsEmptyValue(r[i]))
                     iOK++;
             }
-            if (iOK) 
+            if (iOK)
 	        s.push_back("Y");
             else
                 s.push_back("N");
@@ -2946,7 +2983,7 @@ void DbLoader::_DoFunc(vector<string>& s, const vector<string>& r,
 	        if (!CifString::IsEmptyValue(r[i]))
                 {
 	            if (String::IsCiEqual(r[i], "Y") ||
-                      String::IsCiEqual(r[i], "yes")) 
+                      String::IsCiEqual(r[i], "yes"))
 	                s.push_back("1");
 	            else
 	                s.push_back("0");
@@ -2983,7 +3020,7 @@ void DbLoader::_DoFunc(vector<string>& s, const vector<string>& r,
 	        }
                 else
                 {
-	            s.push_back("");	  
+	            s.push_back("");
 	        }
             }
             if (p) delete[] p;
@@ -3030,7 +3067,7 @@ void DbLoader::_DoFunc(vector<string>& s, const vector<string>& r,
 
 
 int DbLoader::_GetMapColumnIndex(const vector<string>& cNameMap,
-  const string& vOf) 
+  const string& vOf)
 {
   char *p=NULL;
   string cs1;
@@ -3046,7 +3083,7 @@ int DbLoader::_GetMapColumnIndex(const vector<string>& cNameMap,
     jCol = -1;
     for (j=0; j < (int) cNameMap.size(); j++) {
       if (String::IsCiEqual(cs1, cNameMap[j])) {
-	jCol = j; 
+	jCol = j;
 	break;
       }
     }
@@ -3070,7 +3107,7 @@ void DbLoader::_GetMapColumnValue(string& p, vector<string>& dMapVec,
   len = dMapVec[irow].size();
   if (len > 0) {
     p = dMapVec[irow];
-  } 
+  }
 
 }
 
@@ -3113,7 +3150,7 @@ void DbLoader::CreateTables(CifFile& writeCifFile, CifFile& readCifFile)
     ISTable* isTableP = new ISTable("rcsb_tableinfo");
     vector<string> attribNames;
     _schemaMapping.GetAttributeNames(attribNames, "rcsb_tableinfo");
- 
+
     for (unsigned int colI = 0; colI < attribNames.size(); ++colI)
     {
         // Add columns
@@ -3124,7 +3161,7 @@ void DbLoader::CreateTables(CifFile& writeCifFile, CifFile& readCifFile)
 
     isTableP = new ISTable("rcsb_columninfo");
     _schemaMapping.GetAttributeNames(attribNames, "rcsb_columninfo");
- 
+
     for (unsigned int colI = 0; colI < attribNames.size(); ++colI)
     {
         // Add columns
@@ -3140,8 +3177,8 @@ bool DbLoader::_Search(
   vector<vector<string> >& dMap,  // container for output
   const unsigned int iAttrib,     // index between map and schema
   ISTable* isTableP,              // source table
-  const string& blockName,        // block name 
-  const vector<string>& cNameMap, // mapped attributes 
+  const string& blockName,        // block name
+  const vector<string>& cNameMap, // mapped attributes
   const string& sItem,            // source item
   const string& sCnd,
   const string& sFnct             // condition and function code
@@ -3309,7 +3346,7 @@ bool DbLoader::_Search(
     {
         if (_verbose)
             _log << "Target columnName " << columnName << " not in " <<
-              tableName << endl; 
+              tableName << endl;
         vector<string> s;
         for (unsigned int i = 0; i < isTableP->GetNumRows(); ++i)
         {
@@ -3329,12 +3366,12 @@ bool DbLoader::_Search(
 
     if (!sCnd.empty())
     {
-        // fetch condition 
+        // fetch condition
 
         if (_verbose)
             _log << "Using search condition " << sCnd << endl;
 
-        vector<vector<string> > mappedConditions; 
+        vector<vector<string> > mappedConditions;
         _schemaMapping.GetMappedConditions(mappedConditions, sCnd);
 
         if (!mappedConditions.empty())
@@ -3427,7 +3464,7 @@ bool DbLoader::_Search(
                     cndVal = mappedConditions[1];
                     if (_verbose)
                         _log << " ** Starting row "<< j <<
-                          " condition length " << cndCol.size() << 
+                          " condition length " << cndCol.size() <<
                           endl;
 
                     unsigned int iFlagValueOf = 0;
@@ -3435,18 +3472,18 @@ bool DbLoader::_Search(
                     {
 	                if (_verbose) _log << " ** condition value " << i <<
                           " is " << cndVal[i] << endl;
-	    
+
 	                if (!strcmp(cndVal[i].c_str(), "datablockid()"))
                         {
                             cndVal[i] = blockName;
 	                }
-	    
+
 	                if ( !strncmp( cndVal[i].c_str(),"valueof(",8) ||
                           !strncmp( cndVal[i].c_str(),"unseqof(",8) )
                         {
                             iFlagValueOf = 1;
 	                    if (!strncmp( cndVal[i].c_str(),"unseqof(",8))
-                                iFlagValueOf = 2; 
+                                iFlagValueOf = 2;
 
                             string p;
                             if (indDMap[i] >= 0)
@@ -3454,7 +3491,7 @@ bool DbLoader::_Search(
 
 	                    if (p.empty())
                             {
-		                cndVal[i].clear(); 
+		                cndVal[i].clear();
 		                cndVal[i] = "NULL";
 		                if (_verbose)
                                     _log << " ** Map row " <<  j <<
@@ -3462,13 +3499,13 @@ bool DbLoader::_Search(
 	                    }
                             else
                             {
-		                cndVal[i].clear(); 
+		                cndVal[i].clear();
 		                cndVal[i] = p;
 		                if (_verbose)
                                     _log << " ** Map row " <<  j <<
                                       " has value " << p << endl;
 	                    }
-                        } 
+                        }
 	                if (_verbose)
                             _log << " ** Search column " <<
                               cndCol[i] << " for " <<
@@ -3526,7 +3563,7 @@ bool DbLoader::_Search(
                     cndVal.clear();
                     cndCol.clear();
                     r.clear();
-	        } // end j loop	
+	        } // end j loop
                 // copy expand the resulting column
 	        _DoFunc(dMap[iAttrib], tRes, CifString::UnknownValue);
             }
@@ -3669,7 +3706,7 @@ void SqlOutput::WriteSchema(const string& workDir)
           (!_db._schemaMapping.IsTablePopulated(tableNames[i])))
         {
             continue;
-        } 
+        }
 
         string tableNameDb;
         _db._schemaMapping.GetTableNameAbbrev(tableNameDb, tableNames[i]);
@@ -3801,7 +3838,7 @@ void BcpOutput::WriteData(Block& block, const string& workDir)
             {
                 tName += "+";
                 istat = stat(tName.c_str(), &statbuf);
-                cerr << "File size for " << tName << " is " << statbuf.st_size 
+                cerr << "File size for " << tName << " is " << statbuf.st_size
                   << " istat " << istat << endl;
             }
 
@@ -3813,7 +3850,7 @@ void BcpOutput::WriteData(Block& block, const string& workDir)
             else
             {
                 iobcp.open(tName.c_str(), ios::out | ios::trunc);
-            } 
+            }
 
             const vector<string>& columnNames = t->GetColumnNames();
 
@@ -3903,7 +3940,7 @@ void SqlOutput::WriteDataLoadingScript(const string& workDir)
     io << endl;
 
     io.close();
- 
+
 }
 
 
@@ -3984,7 +4021,7 @@ void SqlOutput::WriteData(Block& block, const string& workDir)
             }
 
 #ifdef VLAD_DEBUG_ATOM_SITE
-            cout << "Sql Output: Table \"" << t->GetName() << "\" has " << 
+            cout << "Sql Output: Table \"" << t->GetName() << "\" has " <<
               columnNames.size() << " columns." << endl;
 #endif
 
@@ -4029,10 +4066,10 @@ void Db::WriteLoad(ostream& io)
 
 
 void DbOutput::_FormatStringDataSql(ostream& io, const string& cs,
-  unsigned int maxWidth) 
+  unsigned int maxWidth)
 {
 
-    // A null string or the special CIF characters are treated as NULL. 
+    // A null string or the special CIF characters are treated as NULL.
     if (CifString::IsEmptyValue(cs))
     {
         io << "NULL";
@@ -4356,7 +4393,7 @@ void DbSybase::ConvertDate(string& dbDate, const string& cifDate)
     // Convert MM to textual month and add it
     string::size_type firstDashPos = baseDate.find('-', 0);
     string::size_type secondDashPos = baseDate.find('-', firstDashPos + 1);
-  
+
     string month = baseDate.substr(firstDashPos + 1, secondDashPos -
       (firstDashPos + 1));
 
@@ -4533,7 +4570,7 @@ void DbLoader::_dformat_3(const char *date, char *odate, int shortFlag) {
     strcpy(odate,"");
     return;
   }
-  
+
   day[0] = odate[9];
   day[1] = odate[10];
   day[2] = '\0';
@@ -4615,7 +4652,7 @@ void DbLoader::_dformat_5(const char *date, char *odate) {
     return;
   }
 
-  // Year 
+  // Year
   strncat(odate,&date[0],4);
   for (i=0; i < 4; i++) {
     if (!isdigit(odate[i])) {
@@ -4648,26 +4685,26 @@ void DbLoader::_dformat_5(const char *date, char *odate) {
 
 
 void DbLoader::_ReorderName(string& res, char *aString, int mode)
-{  
+{
   //  mode = 1. Reformat name:  Lastname, I.J. -> I.J. Lastname
-  //  mode = 2. Reformat name:  I.J. Lastname  -> Lastname, I.J. 
-  
+  //  mode = 2. Reformat name:  I.J. Lastname  -> Lastname, I.J.
+
   res.clear();
 
   if (aString == NULL || aString[0] == '\0') return;
-  
+
   int i, ilen = 0, c='\0';
   ilen = strlen(aString);
   if (ilen < 1) return;
 
 
-  char *first = new char[ilen+1]; 
-  char *last  = new char[ilen+1]; 
-  
+  char *first = new char[ilen+1];
+  char *last  = new char[ilen+1];
+
   if (mode == 1) {
     for (i = strlen(aString) - 1; i >= 0; i--)
       if (aString[i] == ',') break;
-    
+
     if (i > 0) {
       strcpy(first, &aString[i+1]);
       aString[i] = '\0';
@@ -4678,14 +4715,14 @@ void DbLoader::_ReorderName(string& res, char *aString, int mode)
       CleanString(lastClean);
       if (firstClean[firstClean.size()-1] == '.')
 	sprintf(aString, "%s%s%c", first, last,c);
-      else 
+      else
 	sprintf(aString, "%s %s%c", first, last, c);
     }
     delete[] first;
     delete[] last;
     res = aString;
     return;
-    
+
   } else if (mode == 2) {
     for (i = strlen(aString) - 1; i >= 0; i--) {
       if (aString[i] == '.') break;
@@ -4702,10 +4739,10 @@ void DbLoader::_ReorderName(string& res, char *aString, int mode)
       delete[] last;
       return;
     }
-    
+
     for (i = strlen(aString) - 1; i >= 0; i--)
       if (aString[i] == ' ') break;
-    
+
     if (i > 0) {
       strcpy(last, &aString[i+1]);
       aString[i+1] = '\0';
@@ -4718,7 +4755,7 @@ void DbLoader::_ReorderName(string& res, char *aString, int mode)
     delete[] last;
     return;
   }
-}  
+}
 
 
 void DbLoader::CleanString(string& aString)
@@ -4738,10 +4775,10 @@ void DbLoader::CleanString(string& aString)
   stringlen = aString.size();
 
   for (i=0; i< stringlen; i++)
-  { 
+  {
       if (aString[i] == ' ' || aString[i] == '\t' ||  aString[i] == '\n')
       {
-          //strcpy(aString, &aString[i+1]);	
+          //strcpy(aString, &aString[i+1]);
           //stringlen--;
           //i--;
       }
@@ -4753,8 +4790,8 @@ void DbLoader::CleanString(string& aString)
 
   for (/*i=0*/; i< stringlen; i++)
   {
-      if (i != savedIndex && 
-	(aString[i-1] == ' ' || aString[i-1] == '\t' || aString[i-1] == '\n')  && 
+      if (i != savedIndex &&
+	(aString[i-1] == ' ' || aString[i-1] == '\t' || aString[i-1] == '\n')  &&
 	(aString[i]   == ' ' || aString[i]   == '\t' || aString[i]   == '\n' ))       {
           //strcpy(&aString[i-1], &aString[i]);
           //i--;
@@ -4803,7 +4840,7 @@ void DbLoader::_ToUpperString(string& aString)
   int i;
   if (_verbose) _log << "_ToUpperString: " << aString << endl;
   if (aString.empty()) return;
-  for (i=0; i< (int) aString.size(); i++) { 
+  for (i=0; i< (int) aString.size(); i++) {
     aString[i] = toupper(aString[i]);
   }
   if (_verbose) _log << "_ToUpperString: " << aString << endl;
@@ -4812,7 +4849,7 @@ void DbLoader::_ToUpperString(string& aString)
 void DbLoader::_StripString(string& aString, int mode)
 {
 /*
- *  _StripString() remove white space characters.  
+ *  _StripString() remove white space characters.
  *        mode = 1  - all white space
  *        mode = 2  - remove only \n and \r
  */
@@ -4829,12 +4866,12 @@ void DbLoader::_StripString(string& aString, int mode)
 
   j=0;
   if (mode == 1) {
-    for (i=0; i< iLen; i++) { 
+    for (i=0; i< iLen; i++) {
       if ( isspace(aString[i]) ) continue;
       ostring[j] = aString[i]; j++;
     }
   } else if (mode == 2) {
-    for (i=0; i< iLen; i++) { 
+    for (i=0; i< iLen; i++) {
       if ( aString[i] == '\n' || aString[i] == '\r'  ) continue;
       ostring[j] = aString[i]; j++;
     }
@@ -4860,7 +4897,7 @@ static void escapeString(string& outStr, const string& inStr)
 
   if (inStr.empty())
       return;
-  
+
   iLen = inStr.size();
 
   for (i=0; i < iLen; i++)
@@ -4880,10 +4917,10 @@ static void escapeString(string& outStr, const string& inStr)
       outStr.push_back('\\');
       outStr.push_back('t');
     }
-    else 
+    else
       outStr.push_back(inStr[i]);
   }
-  
+
 }
 
 
@@ -4918,7 +4955,7 @@ static void name_conversion_first_last(char* aString)
 
 
 #ifdef DB_HASH_ID
-long long DbLoader::pdbIdHash(const string& id) 
+long long DbLoader::pdbIdHash(const string& id)
 {
 
     long long ival, base, base1;
@@ -4926,7 +4963,7 @@ long long DbLoader::pdbIdHash(const string& id)
     int i, j;
     int id1[5];
 
-    const char* list = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"; 
+    const char* list = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
     ival = (long long) 0;
     base = (long long) strlen(list);
@@ -4941,7 +4978,7 @@ long long DbLoader::pdbIdHash(const string& id)
         {
             if (i != 3)
                 base1 = base1*base;
-      
+
             for (j = 0; j < base; j++)
             {
 	        if (id[i] == list[j])
@@ -4968,7 +5005,7 @@ long long DbLoader::pdbIdHash(const string& id)
         {
             if (i != 3)
                 base1 = base1*base;
-      
+
             for (j = 0; j < base; j++)
             {
 	        if (id1[i] == list[j])
@@ -4988,7 +5025,7 @@ long long DbLoader::pdbIdHash(const string& id)
         {
             if (i != 9)
                 base1 = base1*base;
- 
+
             for (j = 0; j < base; j++)
             {
 	        if (id[i] == list[j])
@@ -5010,7 +5047,7 @@ long long DbLoader::pdbIdHash(const string& id)
         {
             if (i != 5)
                 base1 = base1*base;
-      
+
             for (j = 0; j < base; j++)
             {
                 if (id[i] == list[j])
@@ -5028,3 +5065,99 @@ long long DbLoader::pdbIdHash(const string& id)
 
 }
 #endif
+
+void DbMySql::OptimizeTableColumns(const string& tableName, const vector<AttrInfo>& attrs)
+{
+    _tableColumns.clear();
+    _tableOptimized = true;
+
+    // Step 1: Initialize column info with estimated costs
+    unsigned int inlineSum = 0;
+
+    for (unsigned int i = 0; i < attrs.size(); i++) {
+        ColumnOptInfo colInfo;
+        colInfo.attributeName = attrs[i].attribName;
+        colInfo.widthChars = attrs[i].iWidth;
+
+        // Default to VARCHAR for numeric types
+        if (attrs[i].iTypeCode == eTYPE_CODE_INT ||
+            attrs[i].iTypeCode == eTYPE_CODE_FLOAT ||
+            attrs[i].iTypeCode == eTYPE_CODE_BIGINT) {
+            colInfo.columnType = "VARCHAR";
+            colInfo.varcharCost = attrs[i].iWidth;
+            inlineSum += colInfo.varcharCost;
+            _tableColumns.push_back(colInfo);
+            continue;
+        }
+
+        // Handle date types
+        if (attrs[i].iTypeCode == eTYPE_CODE_DATETIME) {
+            colInfo.columnType = "VARCHAR";
+            colInfo.varcharCost = attrs[i].iWidth;
+            inlineSum += colInfo.varcharCost;
+            _tableColumns.push_back(colInfo);
+            continue;
+        }
+
+        // Calculate varchar cost for string and text types
+        colInfo.varcharCost = colInfo.widthChars * MAX_BYTES_PER_CHAR + LenBytes(colInfo.widthChars);
+        colInfo.columnType = "VARCHAR";
+
+        // Immediately promote very large columns to MEDIUMTEXT
+        if (colInfo.widthChars > MEDIUMTEXT_TRIGGER) {
+            colInfo.columnType = "MEDIUMTEXT";
+            // Only count pointer overhead for inline calculation
+            inlineSum += TEXT_POINTER;
+        } else {
+            inlineSum += colInfo.varcharCost;
+        }
+
+        _tableColumns.push_back(colInfo);
+    }
+
+    // Step 2: If row size is under the limit, we're done
+    if (inlineSum <= MAX_INLINE_ROW) {
+        return;
+    }
+
+    // Step 3: Sort columns by descending storage cost (only for string/text types)
+    // Store indexes instead of reordering the actual vector
+    vector<unsigned int> sortedIndexes;
+    for (unsigned int i = 0; i < _tableColumns.size(); i++) {
+        // Only consider string/text columns that aren't already MEDIUMTEXT
+        if (_tableColumns[i].columnType == "VARCHAR" &&
+            (attrs[i].iTypeCode == eTYPE_CODE_STRING || attrs[i].iTypeCode == eTYPE_CODE_TEXT)) {
+            sortedIndexes.push_back(i);
+        }
+    }
+
+    // Sort the indexes based on varcharCost
+    for (unsigned int i = 0; i < sortedIndexes.size(); i++) {
+        for (unsigned int j = i + 1; j < sortedIndexes.size(); j++) {
+            if (_tableColumns[sortedIndexes[i]].varcharCost < _tableColumns[sortedIndexes[j]].varcharCost) {
+                unsigned int temp = sortedIndexes[i];
+                sortedIndexes[i] = sortedIndexes[j];
+                sortedIndexes[j] = temp;
+            }
+        }
+    }
+
+    // Step 4: Greedily offload largest columns to TEXT until under limit
+    for (unsigned int i = 0; i < sortedIndexes.size(); i++) {
+        if (inlineSum <= MAX_INLINE_ROW) {
+            break;
+        }
+
+        unsigned int idx = sortedIndexes[i];
+        // Convert to TEXT
+        inlineSum -= _tableColumns[idx].varcharCost;
+        inlineSum += TEXT_POINTER + TEXT_INLINE;
+        _tableColumns[idx].columnType = "TEXT";
+    }
+}
+
+void DbMySql::ClearTableOptimization()
+{
+    _tableColumns.clear();
+    _tableOptimized = false;
+}

@@ -55,7 +55,7 @@ class DbOracle : public Db
     void WriteNull(std::ostream& io, const int iNull,
       const unsigned int curr, const unsigned int attSize);
     void WriteTableIndex(std::ostream& io, const string& tableNameDb,
-      const vector<string>& indexList, 
+      const vector<string>& indexList,
       const vector<string>& indexListTypes=vector<string>());
 
     void WriteNewLine(std::ostream& io, bool special = false);
@@ -135,12 +135,43 @@ class DbMySql : public Db
 
     void WriteNewLine(std::ostream& io, bool special = false);
 
+    // Add GetText method override to support MEDIUMTEXT
+    void GetText(std::string& dType, const unsigned int width);
+
+    // Process a table's columns to optimize for MySQL row size limit
+    void OptimizeTableColumns(const string& tableName, const vector<AttrInfo>& attrs);
+
+    // Clear column optimizations when done with a table
+    void ClearTableOptimization();
+
   private:
     bool _useMySqlDbHostOption;
     bool _useMySqlDbPortOption;
 
     static const string _SQL_LOADING_FILE;
 
+    // Constants for MySQL storage calculations
+    static const unsigned int MAX_INLINE_ROW = 65535;       // Maximum bytes allowed in a MySQL row
+    static const unsigned int MAX_BYTES_PER_CHAR = 4;       // Worst case for utf8mb4 encoding
+    static const unsigned int TEXT_POINTER = 20;            // Off-page pointer overhead for TEXT
+    static const unsigned int TEXT_INLINE = 768;            // Inline bytes allowed for TEXT fields
+    static const unsigned int MEDIUMTEXT_TRIGGER = 30000;   // Character threshold for using MEDIUMTEXT
+
+    // Column optimization tracking
+    struct ColumnOptInfo {
+        string attributeName;
+        unsigned int widthChars;
+        unsigned int varcharCost;
+        string columnType;  // "VARCHAR", "TEXT", or "MEDIUMTEXT"
+    };
+
+    vector<ColumnOptInfo> _tableColumns;
+    bool _tableOptimized;
+
+    // Helper method to calculate VARCHAR length storage overhead
+    unsigned int LenBytes(unsigned int n) {
+        return (n < 256) ? 1 : 2;
+    }
 };
 
 
@@ -209,7 +240,7 @@ class BcpOutput : public DbOutput
 
     void WriteSpecialDateChar(std::ostream& io, const char& specDateChar);
 };
- 
+
 
 /**
 **  \class SqlOutput
@@ -288,7 +319,7 @@ class DbLoader
 
     /**
     **  Constructs a CIF to DB controller object.
-    **  
+    **
     **  \param[in] schemaMapping - reference to the schema mapping object
     **  \param[in] dbOutput - reference to the database output object
     **  \param[in] verbose - optional parameter that indicates whether
@@ -367,7 +398,7 @@ class DbLoader
     **  Converts a serialized (binary) CIF file to DB loadable data
     **  with/without generating loading scripts. The specified file is
     **  de-serialized (without the need to parse it) and converted.
-    **  
+    **
     **  \param[in] serFile - indicates the name of the serialized (binary)
     **    CIF file, which is to be converted.
     **  \param[in] convOpt - indicates data conversion options: generate
@@ -387,7 +418,7 @@ class DbLoader
     /**
     **  Converts an in-memory CIF file object to DB loadable data
     **  with/without generating loading scripts.
-    **  
+    **
     **  \param[in] cifFile - a reference to the in-memory CIF file object,
     **    which is to be converted.
     **  \param[in] convOpt - indicates data conversion options: generate
@@ -451,7 +482,7 @@ class DbLoader
       ISTable* isTableP, const string& blockName,
       const vector<string>& cNameMap, const string& sItem,
       const string& sCnd, const string& sFnct);
- 
+
     void _DoFunc(vector<string>& s, const vector<string>& r,
       const string& sFnct);
 
