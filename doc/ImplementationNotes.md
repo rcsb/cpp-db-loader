@@ -317,14 +317,5 @@ Consider a table with protein sequence columns:
 - Total row size: ~100 bytes (well under limit)
 - Table creation succeeds
 
-## Benefits
-
-1. **Automatic & Transparent**: No manual schema adjustments needed
-2. **Minimal Changes**: Only converts columns when necessary
-3. **Performance Optimized**: Keeps smaller columns as VARCHAR where appropriate
-4. **Future-Proof**: Handles arbitrary column sizes, including sequences > 32,000 chars
-
-## Affected Files
-
 - `modules/cpp-db-loader/include/CifSchemaMap.h`: Added structures and method declarations
 - `modules/cpp-db-loader/src/CifSchemaMap.C`: Implemented the optimization algorithm
