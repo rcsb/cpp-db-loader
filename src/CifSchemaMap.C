@@ -623,6 +623,7 @@ void DbOutput::_WriteTable(ostream& io, ISTable* tIn,
 
     unsigned int nRows = tIn->GetNumRows();
     unsigned int nCols = tIn->GetNumColumns();
+    const vector<string>& columnsNames = tIn->GetColumnNames();
 
     for (unsigned int i = 0; i < nRows; ++i)
     {
@@ -651,7 +652,15 @@ void DbOutput::_WriteTable(ostream& io, ISTable* tIn,
                     widths[j] = row[j].size();
             }
 
-            _FormatData(io, row[j], typeCodes[j], widths[j]);
+            // ZK: for '_pdbx_chem_comp_descriptor.descriptor' value, add escape backslash character.
+            if ((tIn->GetName() == "pdbx_chem_comp_descriptor") && (columnsNames[j] == "descriptor")) {
+                 string cs = "";
+                 for (unsigned int k = 0; k < row[j].size(); ++k) {
+                      cs += row[j][k];
+                      if (row[j][k] == '\\') cs += '\\';
+                 }
+                 _FormatData(io, cs, typeCodes[j], widths[j]);
+            } else _FormatData(io, row[j], typeCodes[j], widths[j]);
         }
 
         io << GetRowSeparator();
